@@ -68,6 +68,7 @@ docker compose up -d
 # Start order (separate terminals)
 ./gradlew :config-server:bootRun
 ./gradlew :eureka-server:bootRun
+./gradlew :auth-service:bootRun
 ./gradlew :dummy-service:bootRun
 ./gradlew :api-gateway:bootRun
 ```
@@ -78,6 +79,30 @@ docker compose up -d
 - Via Gateway: `GET http://localhost:8080/api/dummy/ping` → `{"status":"UP","service":"dummy-service"}`
 - Kafka UI: http://localhost:8089
 - Kafka bootstrap (host apps): `localhost:9094`
+
+### Phase 1 checkpoint
+
+```bash
+# Register
+curl -s -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"alice\",\"email\":\"alice@example.com\",\"password\":\"password123\"}"
+
+# Login
+curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"alice\",\"password\":\"password123\"}"
+
+# Without token → 401
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/dummy/ping
+
+# With access token → 200
+curl -s http://localhost:8080/api/dummy/ping \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+- Eureka should list `AUTH-SERVICE`
+- Gateway validates JWT and forwards `X-User-Id` to downstream services
 
 ## Project structure
 
@@ -98,4 +123,4 @@ banking-microservices-demo/
 
 ## Status
 
-**Phase 0 complete.** Tiếp theo theo `banking-microservices-plan.md`. Conventions: `AGENTS.md`.
+**Phase 1 complete.** Tiếp theo theo `banking-microservices-plan.md`. Conventions: `AGENTS.md`.

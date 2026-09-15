@@ -4,5 +4,6 @@ include(
     "eureka-server",
     "config-server",
     "api-gateway",
-    "dummy-service"
+    "dummy-service",
+    "auth-service"
 )

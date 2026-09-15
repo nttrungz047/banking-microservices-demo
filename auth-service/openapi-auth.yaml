@@ -1,0 +1,248 @@
+openapi: 3.1.0
+info:
+  title: Auth API
+  description: |
+    Auth Service — register, login, refresh JWT (access + refresh).
+    Preferred entry via API Gateway (`:8080`); direct service port is `8081`.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: API Gateway
+  - url: http://localhost:8081
+    description: Auth Service (direct)
+
+tags:
+  - name: Auth
+    description: Registration and token issuance
+
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: alice
+              email: alice@example.com
+              password: password123
+      responses:
+        '201':
+          description: User created; JWT pair issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiJ9.access
+                refreshToken: eyJhbGciOiJIUzI1NiJ9.refresh
+                tokenType: Bearer
+                userId: 550e8400-e29b-41d4-a716-446655440000
+                username: alice
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '409':
+          description: Username or email already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-09-15T14:00:00Z'
+                status: 409
+                error: Conflict
+                message: 'Username already taken: alice'
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive JWT tokens
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: alice
+              password: password123
+      responses:
+        '200':
+          description: Authenticated; JWT pair issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiJ9.access
+                refreshToken: eyJhbGciOiJIUzI1NiJ9.refresh
+                tokenType: Bearer
+                userId: 550e8400-e29b-41d4-a716-446655440000
+                username: alice
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Invalid username or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-09-15T14:00:00Z'
+                status: 401
+                error: Unauthorized
+                message: Invalid username or password
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access and refresh tokens
+      operationId: refresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            example:
+              refreshToken: eyJhbGciOiJIUzI1NiJ9.refresh
+      responses:
+        '200':
+          description: New JWT pair issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiJ9.access
+                refreshToken: eyJhbGciOiJIUzI1NiJ9.refresh
+                tokenType: Bearer
+                userId: 550e8400-e29b-41d4-a716-446655440000
+                username: alice
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Invalid or non-refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-09-15T14:00:00Z'
+                status: 401
+                error: Unauthorized
+                message: Invalid refresh token
+        '404':
+          description: User from token subject not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-09-15T14:00:00Z'
+                status: 404
+                error: Not Found
+                message: 'User not found: 550e8400-e29b-41d4-a716-446655440000'
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          writeOnly: true
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          writeOnly: true
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: JWT refresh token (`type=refresh`)
+
+    AuthResponse:
+      type: object
+      required: [accessToken, refreshToken, tokenType, userId, username]
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token (`type=access`, ~15m)
+        refreshToken:
+          type: string
+          description: JWT refresh token (`type=refresh`, ~7d)
+        tokenType:
+          type: string
+          const: Bearer
+          example: Bearer
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [timestamp, status, error, message]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            fields:
+              type: object
+              additionalProperties:
+                type: string
+              example:
+                username: must not be blank
+                password: size must be between 8 and 100

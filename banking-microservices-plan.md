@@ -23,13 +23,13 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 ---
 
 ## Phase 1 — Auth Service
-- [ ] Entity: `User`, `Role`
-- [ ] Endpoint: `POST /register`, `POST /login`
-- [ ] JWT issue (access token + refresh token)
-- [ ] Password hashing (BCrypt)
-- [ ] Gateway: filter validate JWT, forward `X-User-Id` header xuống downstream services
+- [x] Entity: `User`, `Role`
+- [x] Endpoint: `POST /register`, `POST /login`
+- [x] JWT issue (access token + refresh token)
+- [x] Password hashing (BCrypt)
+- [x] Gateway: filter validate JWT, forward `X-User-Id` header xuống downstream services
 
-**Checkpoint:** Login trả JWT, gọi API qua Gateway với token hợp lệ mới pass.
+**Checkpoint:** Login trả JWT, gọi API qua Gateway với token hợp lệ mới pass. ✅
 
 ---
 
