@@ -1,0 +1,23 @@
+---
+description: Layered architecture và coding conventions cho Java services
+globs: "**/{account,auth,payment,transaction,notification}-service/src/main/java/**/*.java"
+alwaysApply: false
+---
+
+# Layered architecture
+
+Package layout bắt buộc:
+
+```
+com.banking/{service}/
+  controller/  service/  repository/  entity/
+  dto/  mapper/  event/  config/  exception/
+```
+
+## Rules
+
+- Controller không chứa business logic; không gọi Repository trực tiếp — luôn qua Service.
+- Entity không trả về qua API — map sang DTO bằng MapStruct (không map thủ công).
+- Exception: custom exception + `@RestControllerAdvice`; không throw generic `RuntimeException`.
+- Logging: `@Slf4j` ở Service khi state change quan trọng; không log ở Controller.
+- Config (port, DB, Kafka): từ Config Server / `application.yml` theo profile — không hardcode.

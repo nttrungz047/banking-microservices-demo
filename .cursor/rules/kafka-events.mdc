@@ -1,0 +1,21 @@
+---
+description: Kafka topic naming, idempotent consumers, và đồng bộ producer/consumer
+globs: "**/event/**/*.java,**/config/*Kafka*.java,**/*Consumer*.java,**/*Producer*.java"
+alwaysApply: false
+---
+
+# Kafka events
+
+## Topic naming
+
+`{domain}.{event-name}` — chữ thường, gạch nối.
+
+Ví dụ: `payment.debit-requested`, `payment.transfer-completed`.
+
+## Idempotency
+
+Mọi Kafka consumer phải idempotent: check `eventId` đã xử lý chưa (bảng `processed_events` hoặc tương đương) trước khi thực thi — tránh double-debit khi redelivery.
+
+## Schema sync
+
+Thêm Kafka event mới → cập nhật cả producer và consumer trong cùng một thay đổi; không để lệch schema.

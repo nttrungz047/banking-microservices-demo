@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+          routes:
+            - id: dummy-service
+              uri: lb://DUMMY-SERVICE
+              predicates:
+                - Path=/api/dummy/**
+              filters:
+                - RewritePath=/api/dummy/(?<segment>.*), /api/${segment}

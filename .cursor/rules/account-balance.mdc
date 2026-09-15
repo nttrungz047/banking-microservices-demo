@@ -1,0 +1,19 @@
+---
+description: Optimistic locking và quy tắc debit/credit cho account-service
+globs: "**/account-service/**/*.java"
+alwaysApply: false
+---
+
+# Account balance
+
+## Optimistic locking
+
+Balance update dùng `@Version` trên entity `Account`. Không dùng `synchronized` hay lock tay.
+
+## Internal APIs
+
+Debit/credit là internal — không expose qua Gateway. Chỉ nội bộ qua Kafka hoặc service-to-service có auth riêng.
+
+## Database per Service
+
+Không gọi trực tiếp DB của service khác.

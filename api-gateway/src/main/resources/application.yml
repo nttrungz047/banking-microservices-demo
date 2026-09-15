@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+          routes:
+            - id: dummy-service
+              uri: lb://DUMMY-SERVICE
+              predicates:
+                - Path=/api/dummy/**
+              filters:
+                - RewritePath=/api/dummy/(?<segment>.*), /api/${segment}
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

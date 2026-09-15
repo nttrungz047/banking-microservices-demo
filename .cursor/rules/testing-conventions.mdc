@@ -1,0 +1,11 @@
+---
+description: Unit và integration testing conventions cho banking microservices
+globs: "**/src/test/**/*.java"
+alwaysApply: false
+---
+
+# Testing
+
+- Unit test Service layer bằng Mockito — bắt buộc cho mọi business logic mới.
+- Integration test dùng Testcontainers (Postgres + Kafka thật); không mock infra.
+- Logic transfer/saga: không merge thiếu test.
