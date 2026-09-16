@@ -34,13 +34,13 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 ---
 
 ## Phase 2 — Account Service
-- [ ] Entity: `Account` (id, userId, balance, currency, status)
-- [ ] Endpoint: `POST /accounts`, `GET /accounts/{id}`, `GET /accounts?userId=`
-- [ ] Internal API (không expose qua Gateway): `PUT /accounts/{id}/debit`, `PUT /accounts/{id}/credit`
+- [x] Entity: `Account` (id, userId, balance, currency, status)
+- [x] Endpoint: `POST /accounts`, `GET /accounts/{id}`, `GET /accounts?userId=`
+- [x] Internal API (không expose qua Gateway): `PUT /accounts/{id}/debit`, `PUT /accounts/{id}/credit`
   - Optimistic locking (`@Version`) để chống race condition khi 2 request đồng thời sửa balance
-- [ ] Kafka consumer: lắng nghe `DebitRequested`, `CreditRequested`
+- [x] Kafka consumer: lắng nghe `DebitRequested`, `CreditRequested`
 
-**Checkpoint:** Tạo account, debit/credit qua Kafka event, balance update đúng.
+**Checkpoint:** Tạo account, debit/credit qua Kafka event, balance update đúng. ✅
 
 ---
 

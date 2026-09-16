@@ -123,4 +123,24 @@ banking-microservices-demo/
 
 ## Status
 
-**Phase 1 complete.** Tiếp theo theo `banking-microservices-plan.md`. Conventions: `AGENTS.md`.
+**Phase 2 complete.** Account service đã triển khai CRUD, optimistic locking cho balance, và Kafka consumer xử lý `DebitRequested` / `CreditRequested`. Tiếp theo theo `banking-microservices-plan.md` cho Phase 3. Conventions: `AGENTS.md`.
+
+### Phase 2 checkpoint
+
+```bash
+# Create account
+curl -s -X POST http://localhost:8080/api/accounts \
+  -H "Authorization: Bearer <access-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"<user-id>","balance":"100.00","currency":"USD"}'
+
+# Get by account id
+curl -s http://localhost:8080/api/accounts/<account-id> \
+  -H "Authorization: Bearer <access-token>"
+
+# Kafka-driven debit/credit flow is handled by account-service internally
+```
+
+- `account-service` được đăng ký trên Eureka
+- Balance updates dùng `@Version` để tránh race condition
+- Kafka consumer xử lý debit/credit events và phát hành `Debited` / `Credited` / `DebitFailed` / `CreditFailed`
