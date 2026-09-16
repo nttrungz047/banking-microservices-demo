@@ -14,8 +14,8 @@ Demo hệ thống ngân hàng theo kiến trúc microservices: quản lý accoun
      ┌───────┐  ┌─────────┐ ┌────────┐ ┌─────────┐ ┌──────────────┐
      │ Auth  │  │ Account │ │Payment │ │Transaction│ │Notification │
      └───────┘  └────┬────┘ └───┬────┘ └────┬─────┘ └──────┬───────┘
-                      │          │           │              │
-                      └──────────┴─────Kafka─┴──────────────┘
+                     │          │           │              │
+                     └──────────┴─────Kafka─┴──────────────┘
 
    Eureka (service discovery) + Config Server (centralized config)
    chạy song song, mọi service đăng ký vào Eureka.
