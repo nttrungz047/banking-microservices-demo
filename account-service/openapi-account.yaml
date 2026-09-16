@@ -1,0 +1,384 @@
+openapi: 3.1.0
+info:
+  title: Account API
+  description: |
+    Account Service — create and query accounts, plus internal balance adjustments.
+    Public endpoints are exposed via the API Gateway (`:8080`) and internal endpoints are direct to the service (`:8082`).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: API Gateway
+  - url: http://localhost:8082
+    description: Account Service (direct)
+
+tags:
+  - name: Account
+    description: Public account management endpoints
+  - name: Internal
+    description: Internal balance mutation endpoints for downstream services
+
+paths:
+  /api/accounts:
+    post:
+      tags: [Account]
+      summary: Create a new account
+      operationId: createAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+            example:
+              userId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              initialBalance: 1000.00
+              currency: USD
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+              example:
+                id: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2
+                userId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                balance: 1000.00
+                currency: USD
+                status: ACTIVE
+                version: 0
+                createdAt: '2026-09-16T10:00:00Z'
+        '400':
+          description: Validation failed or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '409':
+          description: Account already exists for same user and currency
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-09-16T10:00:00Z'
+                status: 409
+                error: Conflict
+                message: 'Account already exists for userId=3fa85f64-5717-4562-b3fc-2c963f66afa6 and currency=USD'
+
+    get:
+      tags: [Account]
+      summary: Get accounts for a user
+      operationId: getAccountsByUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User identifier
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountResponse'
+              example:
+                - id: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2
+                  userId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  balance: 1000.00
+                  currency: USD
+                  status: ACTIVE
+                  version: 0
+                  createdAt: '2026-09-16T10:00:00Z'
+                - id: 89fc3502-1cf1-4deb-9df8-5e4d8a623a66
+                  userId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  balance: 2500.00
+                  currency: VND
+                  status: ACTIVE
+                  version: 0
+                  createdAt: '2026-09-16T10:05:00Z'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/accounts/{id}:
+    get:
+      tags: [Account]
+      summary: Get one account by ID
+      operationId: getAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Account ID
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: Account found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+              example:
+                id: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2
+                userId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                balance: 1000.00
+                currency: USD
+                status: ACTIVE
+                version: 0
+                createdAt: '2026-09-16T10:00:00Z'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-09-16T10:00:00Z'
+                status: 404
+                error: Not Found
+                message: 'Account not found: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2'
+
+  /internal/accounts/{id}/debit:
+    put:
+      tags: [Internal]
+      summary: Debit an account balance
+      operationId: debitAccount
+      description: Internal endpoint used by payment or workflow services. This endpoint is not exposed through the API Gateway.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Account ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BalanceUpdateRequest'
+            example:
+              amount: 250.50
+      responses:
+        '200':
+          description: Debit applied successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+              example:
+                id: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2
+                userId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                balance: 749.50
+                currency: USD
+                status: ACTIVE
+                version: 1
+                createdAt: '2026-09-16T10:00:00Z'
+        '400':
+          description: Invalid amount or insufficient funds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Optimistic locking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /internal/accounts/{id}/credit:
+    put:
+      tags: [Internal]
+      summary: Credit an account balance
+      operationId: creditAccount
+      description: Internal endpoint used by payment or workflow services. This endpoint is not exposed through the API Gateway.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Account ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BalanceUpdateRequest'
+            example:
+              amount: 500.00
+      responses:
+        '200':
+          description: Credit applied successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+              example:
+                id: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2
+                userId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                balance: 1500.00
+                currency: USD
+                status: ACTIVE
+                version: 1
+                createdAt: '2026-09-16T10:00:00Z'
+        '400':
+          description: Invalid amount or account state invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Optimistic locking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Access JWT issued by Auth Service. Send as `Authorization: Bearer <access-token>`."
+
+  responses:
+    Unauthorized:
+      description: Missing, invalid, expired, or non-access JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: 401
+            error: Unauthorized
+            message: Invalid or expired token
+
+  schemas:
+    CreateAccountRequest:
+      type: object
+      required: [userId, initialBalance, currency]
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: ID of the owner user
+        initialBalance:
+          type: number
+          format: decimal
+          description: Initial balance to open the account with
+          minimum: 0
+          example: 1000.00
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          pattern: '^[A-Z]{3}$'
+          description: ISO 4217 currency code
+          example: USD
+
+    BalanceUpdateRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          format: decimal
+          exclusiveMinimum: 0
+          description: Positive amount to debit or credit
+          example: 250.50
+
+    AccountResponse:
+      type: object
+      required: [id, userId, balance, currency, status, version, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        balance:
+          type: number
+          format: decimal
+          example: 1000.00
+        currency:
+          type: string
+          example: USD
+        status:
+          type: string
+          enum: [ACTIVE, FROZEN, CLOSED]
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required: [timestamp, status, error, message]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            fields:
+              type: object
+              additionalProperties:
+                type: string
+              example:
+                userId: must not be null
+                currency: must be a 3-letter ISO code

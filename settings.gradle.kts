@@ -5,5 +5,6 @@ include(
     "config-server",
     "api-gateway",
     "dummy-service",
-    "auth-service"
+    "auth-service",
+    "account-service"
 )
