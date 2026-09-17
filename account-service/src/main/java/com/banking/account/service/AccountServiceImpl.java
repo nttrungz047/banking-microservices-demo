@@ -27,7 +27,6 @@ public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
-    private final KafkaAccountProducer kafkaAccountProducer;
 
     @Override
     @Transactional
@@ -78,8 +77,6 @@ public class AccountServiceImpl implements AccountService {
 
         try {
             Account saved = accountRepository.saveAndFlush(account);
-            String eventId = UUID.randomUUID().toString();
-            kafkaAccountProducer.publishDebitCompleted(eventId, accountId, amount, saved.getBalance());
             log.info("Debited account {} by {}. New balance {}", accountId, amount, saved.getBalance());
             return accountMapper.toResponse(saved);
         } catch (OptimisticLockingFailureException ex) {
@@ -98,8 +95,6 @@ public class AccountServiceImpl implements AccountService {
 
         try {
             Account saved = accountRepository.saveAndFlush(account);
-            String eventId = UUID.randomUUID().toString();
-            kafkaAccountProducer.publishCreditCompleted(eventId, accountId, amount, saved.getBalance());
             log.info("Credited account {} by {}. New balance {}", accountId, amount, saved.getBalance());
             return accountMapper.toResponse(saved);
         } catch (OptimisticLockingFailureException ex) {

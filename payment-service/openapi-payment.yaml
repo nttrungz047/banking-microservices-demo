@@ -1,0 +1,167 @@
+openapi: 3.1.0
+info:
+  title: Payment API
+  description: |
+    Starts and queries asynchronous account-to-account transfer sagas.
+    Submit requests through the API Gateway (`:8080`). A successful submission
+    returns `PENDING`; use the payment ID to query its terminal status.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: API Gateway
+  - url: http://localhost:8083
+    description: Payment Service (direct, development only)
+
+tags:
+  - name: Payment
+    description: Transfer saga endpoints
+
+paths:
+  /api/payments/transfer:
+    post:
+      tags: [Payment]
+      summary: Start an account-to-account transfer
+      operationId: transfer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+            example:
+              fromAccountId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              toAccountId: 89fc3502-1cf1-4deb-9df8-5e4d8a623a66
+              amount: 250.50
+      responses:
+        '202':
+          description: Transfer saga accepted and debit requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+              example:
+                id: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2
+                fromAccountId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                toAccountId: 89fc3502-1cf1-4deb-9df8-5e4d8a623a66
+                amount: 250.50
+                status: PENDING
+                failureReason: null
+                createdAt: '2026-09-17T10:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/payments/{id}:
+    get:
+      tags: [Payment]
+      summary: Get transfer saga status
+      operationId: getPayment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: Payment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: 'Payment not found: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access JWT issued by Auth Service.
+  parameters:
+    PaymentId:
+      in: path
+      name: id
+      required: true
+      description: Payment ID
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthorized:
+      description: Missing, invalid, expired, or non-access JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: Invalid or expired token
+    BadRequest:
+      description: Invalid transfer request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: Source and destination accounts must differ
+  schemas:
+    TransferRequest:
+      type: object
+      required: [fromAccountId, toAccountId, amount]
+      properties:
+        fromAccountId:
+          type: string
+          format: uuid
+          description: Account to debit
+        toAccountId:
+          type: string
+          format: uuid
+          description: Account to credit
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Positive amount to transfer
+          example: 250.50
+    PaymentResponse:
+      type: object
+      required: [id, fromAccountId, toAccountId, amount, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        fromAccountId:
+          type: string
+          format: uuid
+        toAccountId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED]
+        failureReason:
+          type: [string, 'null']
+          description: Present when the saga ends in FAILED.
+        createdAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string

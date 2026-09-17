@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record AccountDebitRequestedEvent(
         String eventId,
+        UUID paymentId,
         UUID accountId,
         BigDecimal amount
 ) {
