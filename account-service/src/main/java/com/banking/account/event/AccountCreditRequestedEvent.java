@@ -5,7 +5,9 @@ import java.util.UUID;
 
 public record AccountCreditRequestedEvent(
         String eventId,
+        UUID paymentId,
         UUID accountId,
-        BigDecimal amount
+        BigDecimal amount,
+        boolean refund
 ) {
 }
