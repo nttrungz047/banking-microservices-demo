@@ -1,0 +1,140 @@
+openapi: 3.1.0
+info:
+  title: Transaction API
+  description: |
+    Query transaction history and append-only transaction logs.
+    Events across the banking ecosystem (debit, credit, refund, transfer)
+    are consumed via Kafka and recorded immutably.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: API Gateway
+  - url: http://localhost:8084
+    description: Transaction Service (direct, development only)
+
+tags:
+  - name: Transaction
+    description: Transaction log query endpoints
+
+paths:
+  /api/transactions:
+    get:
+      tags: [Transaction]
+      summary: Query transaction logs
+      operationId: getTransactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: query
+          required: false
+          description: Filter transactions by account ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of transaction logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionLogResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/transactions/{id}:
+    get:
+      tags: [Transaction]
+      summary: Get transaction log by ID
+      operationId: getTransactionById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Transaction log ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transaction log found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionLogResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Transaction log not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: 'Transaction not found: 7f6d5e2e-d2d7-43bf-b0a8-b8b15cfdc5d2'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access JWT issued by Auth Service.
+  responses:
+    Unauthorized:
+      description: Missing, invalid, expired, or non-access JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: Invalid or expired token
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: Bad request
+  schemas:
+    TransactionLogResponse:
+      type: object
+      required: [id, eventId, type, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+        paymentId:
+          type: [string, 'null']
+          format: uuid
+        accountId:
+          type: [string, 'null']
+          format: uuid
+        type:
+          type: string
+          enum: [DEBIT, DEBIT_FAILED, CREDIT, CREDIT_FAILED, REFUND, REFUND_FAILED, TRANSFER_COMPLETED, TRANSFER_FAILED]
+        amount:
+          type: [number, 'null']
+          format: decimal
+        balanceAfter:
+          type: [number, 'null']
+          format: decimal
+        description:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string

@@ -9,13 +9,13 @@ Demo hệ thống ngân hàng theo kiến trúc microservices: quản lý accoun
                           │ API Gateway │  ← JWT validation, routing
                           └──────┬──────┘
                                  │
-         ┌───────────┬──────────┼──────────┬─────────────┐
-         ▼           ▼          ▼          ▼             ▼
+         ┌───────────┬───────────┼───────────┬─────────────┐
+         ▼           ▼           ▼           ▼             ▼
      ┌───────┐  ┌─────────┐ ┌────────┐ ┌─────────┐ ┌──────────────┐
      │ Auth  │  │ Account │ │Payment │ │Transaction│ │Notification │
-     └───────┘  └────┬────┘ └───┬────┘ └────┬─────┘ └──────┬───────┘
-                     │          │           │              │
-                     └──────────┴─────Kafka─┴──────────────┘
+     └───────┘  └────┬────┘ └────┬───┘ └────┬────┘ └──────┬───────┘
+                     │           │          │             │
+                     └───────────┴────Kafka─┴─────────────┘
 
    Eureka (service discovery) + Config Server (centralized config)
    chạy song song, mọi service đăng ký vào Eureka.
@@ -69,6 +69,9 @@ docker compose up -d
 ./gradlew :config-server:bootRun
 ./gradlew :eureka-server:bootRun
 ./gradlew :auth-service:bootRun
+./gradlew :account-service:bootRun
+./gradlew :payment-service:bootRun
+./gradlew :transaction-service:bootRun
 ./gradlew :dummy-service:bootRun
 ./gradlew :api-gateway:bootRun
 ```
@@ -104,6 +107,46 @@ curl -s http://localhost:8080/api/dummy/ping \
 - Eureka should list `AUTH-SERVICE`
 - Gateway validates JWT and forwards `X-User-Id` to downstream services
 
+### Phase 2 checkpoint
+
+```bash
+# Create account
+curl -s -X POST http://localhost:8080/api/accounts \
+  -H "Authorization: Bearer <access-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"<user-id>","balance":"1000.00","currency":"USD"}'
+
+# Get by account id
+curl -s http://localhost:8080/api/accounts/<account-id> \
+  -H "Authorization: Bearer <access-token>"
+```
+
+### Phase 3 checkpoint
+
+```bash
+# Initiate transfer saga
+curl -s -X POST http://localhost:8080/api/payments/transfer \
+  -H "Authorization: Bearer <access-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"fromAccountId":"<account-A-id>","toAccountId":"<account-B-id>","amount":"250.00"}'
+
+# Check payment status
+curl -s http://localhost:8080/api/payments/<payment-id> \
+  -H "Authorization: Bearer <access-token>"
+```
+
+### Phase 4 checkpoint
+
+```bash
+# Query transaction history for an account
+curl -s "http://localhost:8080/api/transactions?accountId=<account-id>" \
+  -H "Authorization: Bearer <access-token>"
+
+# Query single transaction log
+curl -s "http://localhost:8080/api/transactions/<transaction-id>" \
+  -H "Authorization: Bearer <access-token>"
+```
+
 ## Project structure
 
 ```
@@ -115,32 +158,12 @@ banking-microservices-demo/
 ├── api-gateway/
 ├── dummy-service/          # Phase 0 checkpoint only
 ├── auth-service/           # Phase 1+
-├── account-service/
-├── payment-service/
-├── transaction-service/
+├── account-service/        # Phase 2+
+├── payment-service/        # Phase 3+
+├── transaction-service/    # Phase 4+
 └── notification-service/
 ```
 
 ## Status
 
-**Phase 2 complete.** Account service đã triển khai CRUD, optimistic locking cho balance, và Kafka consumer xử lý `DebitRequested` / `CreditRequested`. Tiếp theo theo `banking-microservices-plan.md` cho Phase 3. Conventions: `AGENTS.md`.
-
-### Phase 2 checkpoint
-
-```bash
-# Create account
-curl -s -X POST http://localhost:8080/api/accounts \
-  -H "Authorization: Bearer <access-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"userId":"<user-id>","balance":"100.00","currency":"USD"}'
-
-# Get by account id
-curl -s http://localhost:8080/api/accounts/<account-id> \
-  -H "Authorization: Bearer <access-token>"
-
-# Kafka-driven debit/credit flow is handled by account-service internally
-```
-
-- `account-service` được đăng ký trên Eureka
-- Balance updates dùng `@Version` để tránh race condition
-- Kafka consumer xử lý debit/credit events và phát hành `Debited` / `Credited` / `DebitFailed` / `CreditFailed`
+**Phase 4 complete.** Transaction service đã triển khai append-only `TransactionLog`, Kafka consumer lắng nghe toàn bộ các event (`Debited`, `Credited`, `DebitFailed`, `CreditFailed`, `Refunded`, `TransferCompleted`, `TransferFailed`), và query API `GET /api/transactions?accountId=`. Tiếp theo theo `banking-microservices-plan.md` cho Phase 5. Conventions: `AGENTS.md`.

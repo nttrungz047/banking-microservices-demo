@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "9b1e2a34-87cd-4c12-b123-abcdef123456",
 		"name": "Banking Microservices API",
-		"description": "Postman Collection for Banking Microservices Demo covering Auth Service, Account Service, and Payment Service.",
+		"description": "Postman Collection for Banking Microservices Demo covering Auth Service, Account Service, Payment Service, and Transaction Service.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -438,6 +438,107 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Transaction Service",
+			"description": "Query immutable transaction history and logs.",
+			"item": [
+				{
+					"name": "Get Transactions for Account",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions?accountId={{accountId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "accountId",
+									"value": "{{accountId}}",
+									"description": "Account ID to query transaction logs for"
+								}
+							]
+						},
+						"description": "Fetch chronological transaction logs for the specified account."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Transactions",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"transactions"
+							]
+						},
+						"description": "Fetch all transaction logs in the system."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transaction by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions/{{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"transactions",
+								"{{transactionId}}"
+							]
+						},
+						"description": "Fetch single transaction log entry by ID."
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"variable": [
@@ -464,6 +565,12 @@
 			"value": "http://localhost:8083",
 			"type": "string",
 			"description": "Payment Service direct URL"
+		},
+		{
+			"key": "transactionServiceUrl",
+			"value": "http://localhost:8084",
+			"type": "string",
+			"description": "Transaction Service direct URL"
 		},
 		{
 			"key": "accessToken",
@@ -500,6 +607,12 @@
 			"value": "",
 			"type": "string",
 			"description": "Payment Saga ID auto-saved from Transfer"
+		},
+		{
+			"key": "transactionId",
+			"value": "",
+			"type": "string",
+			"description": "Transaction Log ID"
 		}
 	]
 }

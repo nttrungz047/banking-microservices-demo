@@ -7,5 +7,6 @@ include(
     "dummy-service",
     "auth-service",
     "account-service",
-    "payment-service"
+    "payment-service",
+    "transaction-service"
 )

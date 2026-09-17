@@ -55,16 +55,16 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
   5. Nếu CreditFailed → publish `RefundRequested` (compensating action)
   6. Publish `TransferCompleted` / `TransferFailed`
 
-**Checkpoint:** Transfer thành công end-to-end. Test case fail giữa chừng (VD: account B không tồn tại) → verify compensating transaction hoàn tiền A đúng.
+**Checkpoint:** Transfer thành công end-to-end. Test case fail giữa chừng (VD: account B không tồn tại) → verify compensating transaction hoàn tiền A đúng. ✅
 
 ---
 
 ## Phase 4 — Transaction Service
-- [ ] Entity: `TransactionLog` (append-only, immutable)
-- [ ] Kafka consumer: subscribe tất cả events (Debited, Credited, TransferCompleted...) → ghi log
-- [ ] Endpoint: `GET /transactions?accountId=` (query history)
+- [x] Entity: `TransactionLog` (append-only, immutable)
+- [x] Kafka consumer: subscribe tất cả events (Debited, Credited, TransferCompleted...) → ghi log
+- [x] Endpoint: `GET /transactions?accountId=` (query history)
 
-**Checkpoint:** Mọi transfer đều có log đầy đủ, query theo accountId trả đúng thứ tự thời gian.
+**Checkpoint:** Mọi transfer đều có log đầy đủ, query theo accountId trả đúng thứ tự thời gian. ✅
 
 ---
 
