@@ -11,6 +11,17 @@ management:
       exposure:
         include: health,info
 
+spring:
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
 app:
   jwt:
     secret: "banking-demo-jwt-secret-key-must-be-at-least-32-bytes-long"

@@ -24,7 +24,7 @@ public class KafkaAccountConsumer {
     private final KafkaAccountProducer kafkaAccountProducer;
     private final ObjectMapper objectMapper;
 
-    @KafkaListener(topics = "account.debit-requested", groupId = "account-service-group")
+    @KafkaListener(topics = "account.debit-requested")
     public void onDebitRequested(@Payload String payload) {
         AccountDebitRequestedEvent event = read(payload, AccountDebitRequestedEvent.class);
         if (event == null || event.eventId() == null || event.eventId().isBlank()) {
@@ -45,7 +45,7 @@ public class KafkaAccountConsumer {
         log.info("Processed debit event {}", event.eventId());
     }
 
-    @KafkaListener(topics = {"account.credit-requested", "account.refund-requested"}, groupId = "account-service-group")
+    @KafkaListener(topics = {"account.credit-requested", "account.refund-requested"})
     public void onCreditRequested(@Payload String payload) {
         AccountCreditRequestedEvent event = read(payload, AccountCreditRequestedEvent.class);
         if (event == null || event.eventId() == null || event.eventId().isBlank()) {
