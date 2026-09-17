@@ -45,9 +45,9 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 ---
 
 ## Phase 3 — Payment Service (Saga Orchestrator)
-- [ ] Entity: `Payment` (id, fromAccount, toAccount, amount, status: PENDING/COMPLETED/FAILED)
-- [ ] Endpoint: `POST /payments/transfer`
-- [ ] Saga flow (choreography, qua Kafka topics):
+- [x] Entity: `Payment` (id, fromAccount, toAccount, amount, status: PENDING/COMPLETED/FAILED)
+- [x] Endpoint: `POST /payments/transfer`
+- [x] Saga flow (choreography, qua Kafka topics):
   1. Publish `DebitRequested`
   2. Consume `Debited` / `DebitFailed`
   3. Nếu Debited → publish `CreditRequested`

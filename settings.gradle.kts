@@ -6,5 +6,6 @@ include(
     "api-gateway",
     "dummy-service",
     "auth-service",
-    "account-service"
+    "account-service",
+    "payment-service"
 )
