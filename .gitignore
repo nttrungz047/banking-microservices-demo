@@ -1,6 +1,11 @@
 .gradle/
 build/
+gradle/wrapper/caches/
+gradle/wrapper/daemon/
+gradle/wrapper/native/
+gradle/wrapper/wrapper/
 !gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 out/
 .idea/
 *.iml

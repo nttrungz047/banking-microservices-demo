@@ -1,0 +1,505 @@
+{
+	"info": {
+		"_postman_id": "9b1e2a34-87cd-4c12-b123-abcdef123456",
+		"name": "Banking Microservices API",
+		"description": "Postman Collection for Banking Microservices Demo covering Auth Service, Account Service, and Payment Service.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth Service",
+			"description": "Registration and token issuance endpoints.",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var data = pm.response.json();",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"    if (data.userId) pm.collectionVariables.set('userId', data.userId);",
+									"    console.log('Saved tokens and userId to collection variables.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user and receive initial JWT access and refresh tokens."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var data = pm.response.json();",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"    if (data.userId) pm.collectionVariables.set('userId', data.userId);",
+									"    console.log('Saved tokens and userId to collection variables.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"alice\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with username and password to obtain JWT access and refresh tokens."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var data = pm.response.json();",
+									"    if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+									"    if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+									"    console.log('Refreshed tokens in collection variables.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Refresh access and refresh tokens using a valid refresh token."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Account Service",
+			"description": "Account management endpoints and internal balance adjustments.",
+			"item": [
+				{
+					"name": "Create Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var data = pm.response.json();",
+									"    if (data.id) pm.collectionVariables.set('accountId', data.id);",
+									"    console.log('Saved accountId: ' + data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{userId}}\",\n  \"initialBalance\": 1000.00,\n  \"currency\": \"USD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/accounts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"accounts"
+							]
+						},
+						"description": "Create a new bank account for the user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Accounts by User ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/accounts?userId={{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"accounts"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{userId}}",
+									"description": "User identifier"
+								}
+							]
+						},
+						"description": "Fetch all accounts belonging to the specified user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Account by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/accounts/{{accountId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"accounts",
+								"{{accountId}}"
+							]
+						},
+						"description": "Fetch single account details by account ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Internal - Debit Account",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 250.50\n}"
+						},
+						"url": {
+							"raw": "{{accountServiceUrl}}/internal/accounts/{{accountId}}/debit",
+							"host": [
+								"{{accountServiceUrl}}"
+							],
+							"path": [
+								"internal",
+								"accounts",
+								"{{accountId}}",
+								"debit"
+							]
+						},
+						"description": "Internal balance debit endpoint called directly by internal services (default port :8082)."
+					},
+					"response": []
+				},
+				{
+					"name": "Internal - Credit Account",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 500.00\n}"
+						},
+						"url": {
+							"raw": "{{accountServiceUrl}}/internal/accounts/{{accountId}}/credit",
+							"host": [
+								"{{accountServiceUrl}}"
+							],
+							"path": [
+								"internal",
+								"accounts",
+								"{{accountId}}",
+								"credit"
+							]
+						},
+						"description": "Internal balance credit endpoint called directly by internal services (default port :8082)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment Service",
+			"description": "Starts and queries asynchronous account-to-account transfer sagas.",
+			"item": [
+				{
+					"name": "Transfer Funds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 202) {",
+									"    var data = pm.response.json();",
+									"    if (data.id) pm.collectionVariables.set('paymentId', data.id);",
+									"    console.log('Saved paymentId: ' + data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fromAccountId\": \"{{accountId}}\",\n  \"toAccountId\": \"{{toAccountId}}\",\n  \"amount\": 250.50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/payments/transfer",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"transfer"
+							]
+						},
+						"description": "Initiate an account-to-account transfer saga (status returns PENDING)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transfer Status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/payments/{{paymentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"{{paymentId}}"
+							]
+						},
+						"description": "Get the status of a transfer saga (PENDING, COMPLETED, FAILED)."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string",
+			"description": "API Gateway Base URL"
+		},
+		{
+			"key": "authServiceUrl",
+			"value": "http://localhost:8081",
+			"type": "string",
+			"description": "Auth Service direct URL"
+		},
+		{
+			"key": "accountServiceUrl",
+			"value": "http://localhost:8082",
+			"type": "string",
+			"description": "Account Service direct URL"
+		},
+		{
+			"key": "paymentServiceUrl",
+			"value": "http://localhost:8083",
+			"type": "string",
+			"description": "Payment Service direct URL"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string",
+			"description": "JWT Access Token auto-saved from Register/Login/Refresh"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string",
+			"description": "JWT Refresh Token auto-saved from Register/Login/Refresh"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string",
+			"description": "User ID auto-saved from Register/Login"
+		},
+		{
+			"key": "accountId",
+			"value": "",
+			"type": "string",
+			"description": "Source Account ID auto-saved from Create Account"
+		},
+		{
+			"key": "toAccountId",
+			"value": "89fc3502-1cf1-4deb-9df8-5e4d8a623a66",
+			"type": "string",
+			"description": "Destination Account ID for Transfer"
+		},
+		{
+			"key": "paymentId",
+			"value": "",
+			"type": "string",
+			"description": "Payment Saga ID auto-saved from Transfer"
+		}
+	]
+}
