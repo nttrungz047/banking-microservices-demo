@@ -56,5 +56,12 @@ services:
     ports:
       - "8089:8080"
 
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: banking-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   postgres_data:

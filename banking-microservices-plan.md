@@ -69,10 +69,10 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 ---
 
 ## Phase 5 — Notification Service
-- [ ] Kafka consumer: `TransferCompleted`, `TransferFailed`
-- [ ] Gửi email giả lập (log ra console hoặc dùng MailHog để test thật)
+- [x] Kafka consumer: `TransferCompleted`, `TransferFailed`
+- [x] Gửi email giả lập (log ra console hoặc dùng MailHog để test thật)
 
-**Checkpoint:** Sau transfer, notification log/email xuất hiện.
+**Checkpoint:** Sau transfer, notification log/email xuất hiện. ✅
 
 ---
 
@@ -104,4 +104,5 @@ Mỗi phase code xong nên demo chạy được (checkpoint) trước khi qua ph
 - Phase 2: Optimistic vs Pessimistic locking cho balance update?
 - Phase 3: Saga Choreography vs Orchestration? Sao không 2PC?
 - Phase 4: Tại sao Transaction Service tách riêng khỏi Payment?
+- Phase 5: Notification delivery reliability và consumer idempotency?
 - Phase 6: Circuit Breaker states? Idempotency implement thế nào?

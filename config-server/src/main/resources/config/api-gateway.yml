@@ -26,6 +26,10 @@ spring:
               uri: lb://TRANSACTION-SERVICE
               predicates:
                 - Path=/api/transactions/**
+            - id: notification-service
+              uri: lb://NOTIFICATION-SERVICE
+              predicates:
+                - Path=/api/notifications/**
             - id: dummy-service
               uri: lb://DUMMY-SERVICE
               predicates:
