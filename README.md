@@ -30,7 +30,7 @@ Payment: consume Debited → publish CreditRequested
   → Account: credit B → publish Credited (hoặc CreditFailed)
     → nếu fail: publish RefundRequested (compensating transaction, hoàn tiền A)
 Transaction: consume mọi event → ghi log
-Notification: consume TransferCompleted → gửi email
+Notification: consume TransferCompleted/TransferFailed → gửi email (idempotent theo eventId)
 ```
 
 ## Services
@@ -45,7 +45,7 @@ Notification: consume TransferCompleted → gửi email
 | account-service | 8082 | Account CRUD, balance | PostgreSQL (`account_db`) |
 | payment-service | 8083 | Saga orchestrator cho transfer | PostgreSQL (`payment_db`) |
 | transaction-service | 8084 | Transaction history (append-only log) | PostgreSQL (`transaction_db`) |
-| notification-service | 8085 | Email/SMS notification | - |
+| notification-service | 8085 | Email notification (Kafka consumer, SMTP/MailHog) | PostgreSQL (`notification_db`) |
 
 ## Tech Stack
 
@@ -53,7 +53,7 @@ Notification: consume TransferCompleted → gửi email
 - Spring Cloud 2025.1.x (Gateway, Eureka, Config Server)
 - Spring Security + JWT (from Phase 1)
 - Kafka KRaft (event bus)
-- PostgreSQL (Database per Service — 1 container, 4 databases)
+- PostgreSQL (Database per Service — 1 container, 5 databases)
 - Resilience4j (Circuit Breaker, Retry) — Phase 6
 - Docker Compose
 
@@ -62,7 +62,7 @@ Notification: consume TransferCompleted → gửi email
 Requires **JDK 25** (`JAVA_HOME` pointing to JDK 25).
 
 ```bash
-# Infra: Postgres (4 DBs), Kafka KRaft, Kafka UI
+# Infra: Postgres (5 DBs), Kafka KRaft, Kafka UI, MailHog
 docker compose up -d
 
 # Start order (separate terminals)
@@ -72,6 +72,7 @@ docker compose up -d
 ./gradlew :account-service:bootRun
 ./gradlew :payment-service:bootRun
 ./gradlew :transaction-service:bootRun
+./gradlew :notification-service:bootRun
 ./gradlew :dummy-service:bootRun
 ./gradlew :api-gateway:bootRun
 ```
@@ -147,6 +148,21 @@ curl -s "http://localhost:8080/api/transactions/<transaction-id>" \
   -H "Authorization: Bearer <access-token>"
 ```
 
+### Phase 5 checkpoint
+
+```bash
+# Perform a transfer (see Phase 3), then query notification log
+curl -s "http://localhost:8080/api/notifications?paymentId=<payment-id>" \
+  -H "Authorization: Bearer <access-token>"
+
+# Query single notification by id
+curl -s "http://localhost:8080/api/notifications/<notification-id>" \
+  -H "Authorization: Bearer <access-token>"
+```
+
+- MailHog UI: http://localhost:8025 — email từ SMTP 1025 xuất hiện sau transfer
+- Notification consumer idempotent: duplicate được skip qua `processed_events` table
+
 ## Project structure
 
 ```
@@ -161,9 +177,9 @@ banking-microservices-demo/
 ├── account-service/        # Phase 2+
 ├── payment-service/        # Phase 3+
 ├── transaction-service/    # Phase 4+
-└── notification-service/
+└── notification-service/   # Phase 5+
 ```
 
 ## Status
 
-**Phase 4 complete.** Transaction service đã triển khai append-only `TransactionLog`, Kafka consumer lắng nghe toàn bộ các event (`Debited`, `Credited`, `DebitFailed`, `CreditFailed`, `Refunded`, `TransferCompleted`, `TransferFailed`), và query API `GET /api/transactions?accountId=`. Tiếp theo theo `banking-microservices-plan.md` cho Phase 5. Conventions: `AGENTS.md`.
+**Phase 5 complete.** Notification service đã triển khai Kafka consumer cho `payment.transfer-completed` / `payment.transfer-failed`, gửi email qua SMTP/MailHog, lưu notification log (idempotent qua `processed_events`), và query API `GET /api/notifications?paymentId=` / `GET /api/notifications/{id}`. Tiếp theo theo `banking-microservices-plan.md` cho Phase 6. Conventions: `AGENTS.md`.
