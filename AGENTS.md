@@ -4,7 +4,7 @@ Hướng dẫn cho AI coding agent (Claude Code, v.v.) khi làm việc trong rep
 
 ## Project context
 
-Portfolio project: hệ thống banking microservices. Chi tiết kiến trúc xem `README.md`, roadmap xem `banking-microservices-plan.md`.
+Portfolio project: hệ thống banking microservices. Chi tiết kiến trúc xem `README.md`, roadmap xem `docs/banking-microservices-plan.md`.
 
 ## Tech stack — bắt buộc tuân thủ
 
@@ -47,7 +47,7 @@ Portfolio project: hệ thống banking microservices. Chi tiết kiến trúc x
 ├── dto/             # request/response DTO, không expose entity ra ngoài
 ├── mapper/           # MapStruct
 ├── event/            # Kafka event DTO (producer + consumer)
-├── config/           # Kafka, Security config
+├── config/           # Kafka, Security, OpenAPI config
 └── exception/        # custom exception + GlobalExceptionHandler
 ```
 
@@ -78,17 +78,18 @@ Portfolio project: hệ thống banking microservices. Chi tiết kiến trúc x
 
 - Mỗi service dùng `@KafkaListener` phải khai báo `@EnableKafka`, `ConsumerFactory` và bean mặc định tên `kafkaListenerContainerFactory`; listener phải deserialize đúng payload contract.
 - Kafka event là immutable, có `eventId`; event nằm trong Saga phải có `paymentId` hoặc correlation ID xuyên suốt toàn bộ flow.
-- Thêm hoặc đổi event phải cập nhật producer, consumer, event schema, topic config và OpenAPI/README liên quan trong cùng thay đổi.
+- Thêm hoặc đổi event phải cập nhật producer, consumer, event schema, topic config và Postman/README liên quan trong cùng thay đổi.
 - Consumer chỉ ghi `processed_events` sau khi business action thành công hoặc đã publish failure outcome phù hợp; duplicate event phải an toàn và có log event ID.
 - Saga phải có success path, failure path và compensating action. Không đánh dấu Saga terminal trước khi compensation trả kết quả (`refund-completed` hoặc `refund-failed`).
 - Log state transition ở Service layer với event ID, aggregate/payment ID và trạng thái cũ/mới; không log dữ liệu nhạy cảm.
 - Không xem `kafkaTemplate.send()` trong cùng DB transaction là bảo đảm delivery. Với flow cần độ tin cậy production, triển khai transactional outbox trước khi coi delivery là guaranteed.
 
-## API & OpenAPI contract
+## API Documentation & Contract (Postman Collection)
 
-- Mỗi service có REST API public bắt buộc có file `openapi-{service}.yaml` ở root của module.
-- OpenAPI phải khớp source: path, HTTP method, authentication, request/response DTO, validation, HTTP status code và error response.
-- Thay đổi public endpoint hoặc DTO là thay đổi contract: cập nhật OpenAPI trong cùng pull request.
+- Toàn bộ public API của hệ thống được quản lý và kiểm thử tập trung tại file `/docs/postman_collection.json`.
+- Swagger/OpenAPI được sinh tự động (auto-generated) qua `springdoc-openapi` tại runtime (`/swagger-ui.html` và `/v3/api-docs`).
+- Khi tạo mới hoặc thay đổi public endpoint (path, method, query, request body, response DTO, auth header), **bắt buộc cập nhật file `docs/postman_collection.json`** trong cùng pull request.
+- Postman collection phải có test scripts tự động lưu token / IDs cần thiết (`accessToken`, `senderAccountId`, `receiverAccountId`, `paymentId`) để hỗ trợ automated request chaining.
 - Không document internal endpoint như API Gateway public; endpoint nội bộ phải nêu rõ phạm vi và cơ chế auth service-to-service.
 
 ## Testing
@@ -101,11 +102,11 @@ Portfolio project: hệ thống banking microservices. Chi tiết kiến trúc x
 
 ## Khi agent tạo code mới
 
-1. Đọc `banking-microservices-plan.md` để biết đang ở Phase nào, chỉ implement đúng scope của phase đó.
+1. Đọc `docs/banking-microservices-plan.md` để biết đang ở Phase nào, chỉ implement đúng scope của phase đó.
 2. Tuân thủ cấu trúc thư mục ở trên, không tự ý đổi package layout.
 3. Nếu thêm Kafka event mới → cập nhật cả producer và consumer trong cùng 1 lần thay đổi, không để lệch schema.
 4. Nếu sửa entity có ảnh hưởng DB schema → tạo Flyway migration script trong `src/main/resources/db/migration/`, không dùng `ddl-auto: update` ở môi trường không phải local dev.
-5. Nếu service có public REST API mới hoặc thay đổi API → tạo/cập nhật `openapi-{service}.yaml` cùng lần thay đổi.
+5. Nếu service có public REST API mới hoặc thay đổi API → tạo/cập nhật `docs/postman_collection.json` cùng lần thay đổi.
 6. Nếu thêm config service → tạo/cập nhật config tương ứng ở Config Server, không đặt local fallback.
 7. Sau khi code xong 1 phase, đảm bảo checkpoint trong plan pass được: build/test chạy, endpoint gọi được, Kafka listener/group hoạt động nếu có event flow.
 
@@ -123,4 +124,4 @@ docker-compose up -d                # infra (Postgres, Kafka)
 - Không gọi trực tiếp DB của service khác (vi phạm Database per Service).
 - Không dùng 2PC / distributed transaction cho transfer — dùng Saga.
 - Không expose internal endpoint (debit/credit) ra ngoài qua Gateway — chỉ nội bộ qua Kafka hoặc service-to-service có auth riêng.
-- Không merge public API thiếu OpenAPI contract hoặc Saga thiếu test success/failure/compensation.
+- Không merge public API thiếu tài liệu trong Postman collection hoặc Saga thiếu test success/failure/compensation.

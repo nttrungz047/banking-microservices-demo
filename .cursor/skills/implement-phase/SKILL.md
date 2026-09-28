@@ -7,7 +7,7 @@ description: Implement đúng một phase theo banking-microservices-plan.md. Us
 
 ## Workflow
 
-1. Đọc `banking-microservices-plan.md` — xác định phase đang làm; chỉ implement đúng scope phase đó.
+1. Đọc `../../../docs/banking-microservices-plan.md` — xác định phase đang làm; chỉ implement đúng scope phase đó.
 2. Tuân thủ package layout và conventions trong `AGENTS.md`.
 3. Sau khi code: đảm bảo checkpoint của phase pass (build chạy, endpoint/demo được).
 4. Không nhảy phase trước khi checkpoint hiện tại pass.
@@ -23,4 +23,4 @@ docker-compose up -d
 
 ## Thứ tự phase
 
-`0 → 1 → 2 → 3 → 4 → 5 → 6 → 7` — xem chi tiết và checkpoint trong `banking-microservices-plan.md`.
+`0 → 1 → 2 → 3 → 4 → 5 → 6 → 7` — xem chi tiết và checkpoint trong `../../../docs/banking-microservices-plan.md`.

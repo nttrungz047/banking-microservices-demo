@@ -13,7 +13,7 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 ---
 
 ## Phase 0 — Infrastructure Setup
-- [x] `docker-compose.yml`: Postgres (1 instance, 4 databases), Kafka KRaft, Kafka UI (debug)
+- [x] `../docker-compose.yml`: Postgres (1 instance, 4 databases), Kafka KRaft, Kafka UI (debug)
 - [x] **Eureka Server** — service registry
 - [x] **Config Server** — centralized config, native file
 - [x] **API Gateway** (Spring Cloud Gateway) — routing + JWT filter stub (validate ở Phase 1)
@@ -88,9 +88,9 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 
 ## Phase 7 — Polish cho Portfolio
 - [x] README rõ ràng: architecture diagram (Mermaid), sequence diagram, cách chạy `docker-compose up`, interview Q&A
-- [x] Postman collection (`docs/postman_collection.json`) và Swagger/OpenAPI (`springdoc-openapi`) mỗi service
+- [x] Postman collection (`postman_collection.json`) và Swagger/OpenAPI (`springdoc-openapi`) mỗi service
 - [x] Unit test (service layer) + Integration test (Testcontainers cho Kafka + Postgres trên `payment-service`)
-- [x] CI đơn giản (GitHub Actions: build + test trong `.github/workflows/ci.yml`)
+- [x] CI đơn giản (GitHub Actions: build + test trong `../.github/workflows/ci.yml`)
 
 **Checkpoint:** Hoàn thiện portfolio repo đầy đủ tài liệu, OpenAPI docs, Postman scripts, Testcontainers test, CI workflow, build và test thành công 100%. ✅
 
