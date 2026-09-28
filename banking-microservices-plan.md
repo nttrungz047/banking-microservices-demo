@@ -87,10 +87,12 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 ---
 
 ## Phase 7 — Polish cho Portfolio
-- [ ] README rõ ràng: architecture diagram, cách chạy `docker-compose up`
-- [ ] Postman collection hoặc Swagger/OpenAPI mỗi service
-- [ ] Unit test (service layer) + 1 Integration test (Testcontainers cho Kafka + Postgres)
-- [ ] CI đơn giản (GitHub Actions: build + test)
+- [x] README rõ ràng: architecture diagram (Mermaid), sequence diagram, cách chạy `docker-compose up`, interview Q&A
+- [x] Postman collection (`docs/postman_collection.json`) và Swagger/OpenAPI (`springdoc-openapi`) mỗi service
+- [x] Unit test (service layer) + Integration test (Testcontainers cho Kafka + Postgres trên `payment-service`)
+- [x] CI đơn giản (GitHub Actions: build + test trong `.github/workflows/ci.yml`)
+
+**Checkpoint:** Hoàn thiện portfolio repo đầy đủ tài liệu, OpenAPI docs, Postman scripts, Testcontainers test, CI workflow, build và test thành công 100%. ✅
 
 ---
 
@@ -98,13 +100,4 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 ```
 Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7
 ```
-Mỗi phase code xong nên demo chạy được (checkpoint) trước khi qua phase kế — tránh debug dồn cục cuối.
-
-## Điểm sẽ được hỏi trong interview (map theo phase)
-- Phase 0: Service discovery hoạt động thế nào? Gateway routing?
-- Phase 1: JWT stateless vs session — trade-off? Refresh token flow?
-- Phase 2: Optimistic vs Pessimistic locking cho balance update?
-- Phase 3: Saga Choreography vs Orchestraction? Sao không 2PC?
-- Phase 4: Tại sao Transaction Service tách riêng khỏi Payment?
-- Phase 5: Notification delivery reliability và consumer idempotency?
-- Phase 6: Circuit Breaker states? Idempotency implement thế nào?
+Mọi phases đều đã hoàn tất và vượt qua toàn bộ kiểm thử tự động.

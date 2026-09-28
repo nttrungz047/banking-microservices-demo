@@ -35,7 +35,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/auth/login",
             "/api/auth/refresh",
             "/actuator",
-            "/fallback"
+            "/fallback",
+            "/swagger-ui",
+            "/v3/api-docs"
     );
 
     private final SecretKey secretKey;

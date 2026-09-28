@@ -1,185 +1,254 @@
-# Banking Microservices
+# 🏦 Banking Microservices Platform
 
-Demo hệ thống ngân hàng theo kiến trúc microservices: quản lý account, xử lý transfer tiền qua Saga pattern, event-driven bằng Kafka.
+[![Java 25](https://img.shields.io/badge/Java-25-orange.svg?style=flat&logo=openjdk)](https://openjdk.org/)
+[![Spring Boot 4.1.x](https://img.shields.io/badge/Spring%20Boot-4.1.1-brightgreen.svg?style=flat&logo=springboot)](https://spring.io/projects/spring-boot)
+[![Spring Cloud 2025.1.x](https://img.shields.io/badge/Spring%20Cloud-2025.1.2-blue.svg?style=flat&logo=spring)](https://spring.io/projects/spring-cloud)
+[![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-KRaft-black.svg?style=flat&logo=apachekafka)](https://kafka.apache.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg?style=flat&logo=postgresql)](https://www.postgresql.org/)
+[![Resilience4j](https://img.shields.io/badge/Resilience4j-Circuit%20Breaker-red.svg?style=flat)](https://resilience4j.readme.io/)
+[![Zipkin Distributed Tracing](https://img.shields.io/badge/Distributed%20Tracing-Zipkin%20%2B%20Brave-yellow.svg?style=flat)](https://zipkin.io/)
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blue.svg?style=flat&logo=githubactions)](.github/workflows/ci.yml)
 
-## Architecture
+An enterprise-grade, distributed **Banking Microservices Platform** built with **Java 25**, **Spring Boot 4.1.x**, and **Spring Cloud 2025.1.x**. This project demonstrates end-to-end event-driven architecture, choreographic & orchestrated Saga distributed transaction patterns, optimistic concurrency locking, distributed tracing, circuit breaker fault-tolerance, Kafka idempotency, and comprehensive centralized exception handling.
 
+---
+
+## 🏛️ System Architecture
+
+```mermaid
+graph TD
+    Client["Client / Postman / Frontend"] -->|HTTP REST / JWT| Gateway["API Gateway (:8080)<br>• JWT Auth Filter<br>• Resilience4j Circuit Breakers<br>• Centralized Error Handler"]
+
+    subgraph Infrastructure ["Infrastructure Layer"]
+        Eureka["Eureka Discovery Server (:8761)"]
+        Config["Spring Cloud Config Server (:8888)"]
+        Zipkin["Zipkin Tracing Server (:9411)"]
+        KafkaUI["Kafka UI (:8089)"]
+        MailHog["MailHog SMTP (:8025)"]
+    end
+
+    subgraph Core Services ["Business Microservices Layer"]
+        Auth["Auth Service (:8081)<br>• User Management<br>• JWT Issue & Refresh"]
+        Account["Account Service (:8082)<br>• Balance Management<br>• Optimistic Locking (@Version)"]
+        Payment["Payment Service (:8083)<br>• Saga Orchestrator<br>• Transfer State Machine"]
+        Transaction["Transaction Service (:8084)<br>• Append-only Ledger<br>• Audit History"]
+        Notification["Notification Service (:8085)<br>• Customer Alerts<br>• Email Dispatcher"]
+    end
+
+    subgraph Data & Messaging ["Storage & Event Bus"]
+        KafkaBus[("Apache Kafka Event Bus (:9092, :9094)<br>• Distributed Topics<br>• Observation Tracing<br>• Dead-Letter-Topics (.DLT)")]
+        Postgres[("PostgreSQL Instance (:5432)<br>• auth_db<br>• account_db<br>• payment_db<br>• transaction_db<br>• notification_db")]
+    end
+
+    Gateway --> Auth
+    Gateway --> Account
+    Gateway --> Payment
+    Gateway --> Transaction
+    Gateway --> Notification
+
+    Auth --> Eureka
+    Account --> Eureka
+    Payment --> Eureka
+    Transaction --> Eureka
+    Notification --> Eureka
+    Gateway --> Eureka
+
+    Account <--> KafkaBus
+    Payment <--> KafkaBus
+    Transaction <--> KafkaBus
+    Notification <--> KafkaBus
+
+    Auth --> Postgres
+    Account --> Postgres
+    Payment --> Postgres
+    Transaction --> Postgres
+    Notification --> Postgres
 ```
-                          ┌─────────────┐
-                          │ API Gateway │  ← JWT validation, routing
-                          └──────┬──────┘
-                                 │
-         ┌───────────┬───────────┼───────────┬─────────────┐
-         ▼           ▼           ▼           ▼             ▼
-     ┌───────┐  ┌─────────┐ ┌────────┐ ┌─────────┐ ┌──────────────┐
-     │ Auth  │  │ Account │ │Payment │ │Transaction│ │Notification │
-     └───────┘  └────┬────┘ └────┬───┘ └────┬────┘ └──────┬───────┘
-                     │           │          │             │
-                     └───────────┴────Kafka─┴─────────────┘
 
-   Eureka (service discovery) + Config Server (centralized config)
-   chạy song song, mọi service đăng ký vào Eureka.
+---
+
+## 🔄 Distributed Saga Transaction Pattern (Money Transfer Flow)
+
+The money transfer flow is implemented via an **Event-Driven Saga Pattern** with automatic compensating actions (refunds) upon failure, avoiding slow 2PC distributed locking:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant Gateway as API Gateway
+    participant Payment as Payment Service
+    participant Kafka as Kafka Topics
+    participant Account as Account Service
+    participant Tx as Transaction Service
+    participant Notif as Notification Service
+
+    Client->>Gateway: POST /api/payments/transfer
+    Gateway->>Payment: Forward request with X-User-Id
+    Payment->>Payment: Save Payment (status: PENDING)
+    Payment->>Kafka: Publish `account.debit-requested`
+    
+    par Async Processing
+        Account->>Kafka: Consume `account.debit-requested`
+        Account->>Account: Debit fromAccount (Optimistic Lock)
+        Account->>Kafka: Publish `account.debit-completed`
+        Tx->>Kafka: Consume `account.debit-completed` -> Log DEBIT
+    end
+
+    Payment->>Kafka: Consume `account.debit-completed`
+    Payment->>Kafka: Publish `account.credit-requested`
+
+    alt Credit Succeeded
+        Account->>Kafka: Consume `account.credit-requested`
+        Account->>Account: Credit toAccount (Optimistic Lock)
+        Account->>Kafka: Publish `account.credit-completed`
+        Payment->>Kafka: Consume `account.credit-completed`
+        Payment->>Payment: Update Payment (status: COMPLETED)
+        Payment->>Kafka: Publish `payment.transfer-completed`
+        Tx->>Kafka: Log TRANSFER_COMPLETED
+        Notif->>Kafka: Consume `payment.transfer-completed` -> Send Email Alert
+    else Credit Failed (Compensating Transaction)
+        Account->>Kafka: Publish `account.credit-failed`
+        Payment->>Kafka: Consume `account.credit-failed`
+        Payment->>Kafka: Publish `account.refund-requested`
+        Account->>Kafka: Debit refund to fromAccount -> Publish `account.refund-completed`
+        Payment->>Payment: Update Payment (status: FAILED)
+        Payment->>Kafka: Publish `payment.transfer-failed`
+        Notif->>Kafka: Send Failure Email Alert
+    end
 ```
 
-**Money transfer flow** dùng **Choreography Saga** (event-driven, không dùng distributed transaction 2PC):
+---
 
-```
-Payment: publish DebitRequested
-  → Account: debit A → publish Debited (hoặc DebitFailed)
-Payment: consume Debited → publish CreditRequested
-  → Account: credit B → publish Credited (hoặc CreditFailed)
-    → nếu fail: publish RefundRequested (compensating transaction, hoàn tiền A)
-Transaction: consume mọi event → ghi log
-Notification: consume TransferCompleted/TransferFailed → gửi email (idempotent theo eventId)
-```
+## 🛠️ Microservices & Tech Stack Overview
 
-## Services
-
-| Service | Port | Responsibility | DB |
+| Service | Port | Database | Primary Responsibility |
 |---|---|---|---|
-| eureka-server | 8761 | Service discovery | - |
-| config-server | 8888 | Centralized config (native) | - |
-| api-gateway | 8080 | Routing, JWT filter | - |
-| dummy-service | 8090 | Phase 0 checkpoint ping | - |
-| auth-service | 8081 | Register/login, JWT issue | PostgreSQL (`auth_db`) |
-| account-service | 8082 | Account CRUD, balance | PostgreSQL (`account_db`) |
-| payment-service | 8083 | Saga orchestrator cho transfer | PostgreSQL (`payment_db`) |
-| transaction-service | 8084 | Transaction history (append-only log) | PostgreSQL (`transaction_db`) |
-| notification-service | 8085 | Email notification (Kafka consumer, SMTP/MailHog) | PostgreSQL (`notification_db`) |
+| **`eureka-server`** | `8761` | — | Dynamic Service Registry & Discovery |
+| **`config-server`** | `8888` | — | Centralized Configuration Management (Native repository) |
+| **`api-gateway`** | `8080` | — | Reactive Routing, JWT Authentication Filter, Resilience4j Circuit Breaker |
+| **`auth-service`** | `8081` | PostgreSQL (`auth_db`) | User Registration, BCrypt password hashing, JWT Access/Refresh tokens |
+| **`account-service`** | `8082` | PostgreSQL (`account_db`) | Bank accounts, `@Version` optimistic locking debit/credit operations |
+| **`payment-service`** | `8083` | PostgreSQL (`payment_db`) | Saga Orchestration, payment lifecycle, compensating transactions |
+| **`transaction-service`** | `8084` | PostgreSQL (`transaction_db`) | Immutable append-only audit ledger for transactions |
+| **`notification-service`** | `8085` | PostgreSQL (`notification_db`) | Idempotent email notifications via MailHog / JavaMail |
+| **`zipkin`** | `9411` | In-memory / Storage | Micrometer Brave distributed trace UI & span visualizer |
 
-## Tech Stack
+---
 
-- Java 25, Spring Boot 4.1.x, Gradle 9.x
-- Spring Cloud 2025.1.x (Gateway, Eureka, Config Server)
-- Spring Security + JWT (from Phase 1)
-- Kafka KRaft (event bus)
-- PostgreSQL (Database per Service — 1 container, 5 databases)
-- Resilience4j (Circuit Breaker, Retry) — Phase 6
-- Docker Compose
+## 🛡️ Cross-Cutting Concerns & Production-Ready Patterns
 
-## Run locally
+### 1. Centralized Exception Handling
+- Unified JSON error schema across all services:
+  ```json
+  {
+    "timestamp": "2026-09-28T07:15:00.123Z",
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Validation failed",
+    "fields": { "amount": "must be greater than 0" }
+  }
+  ```
+- Handled at both **API Gateway** (`GatewayErrorWebExceptionHandler` on WebFlux) and downstream services (`@RestControllerAdvice`).
 
-Requires **JDK 25** (`JAVA_HOME` pointing to JDK 25).
+### 2. Distributed Tracing (Micrometer Tracing + Zipkin)
+- Request traces (`traceId`, `spanId`) are automatically propagated across synchronous HTTP calls and asynchronous Kafka topics via `spring.kafka.template.observation-enabled: true`.
+- View distributed span visualizer at [http://localhost:9411](http://localhost:9411).
 
+### 3. Fault Tolerance & Resilience (Resilience4j + Kafka DLT)
+- **API Gateway Circuit Breaker**: Routes are wrapped in Resilience4j reactive circuit breakers. In case of downstream service degradation, requests fallback to `/fallback/{service}` with `503 Service Unavailable`.
+- **Kafka Consumer Retry & Dead Letter Topics**: `DefaultErrorHandler` configured with `FixedBackOff(1000L, 3)` and `DeadLetterPublishingRecoverer` to automatically publish unrecoverable messages to `<topic>.DLT`.
+
+### 4. Consumer Idempotency
+- All Kafka consumers check the `ProcessedEvent` repository (`existsById(eventId)`) to avoid double debits/credits or duplicate emails if messages are redelivered.
+
+---
+
+## 🚀 Quickstart & Local Execution
+
+### Prerequisites
+- **Java 25 JDK** (`JAVA_HOME` pointing to JDK 25)
+- **Docker & Docker Compose**
+
+### Step 1: Start Infrastructure Containers
 ```bash
-# Infra: Postgres (5 DBs), Kafka KRaft, Kafka UI, MailHog
 docker compose up -d
+```
+*Spins up PostgreSQL (with 5 databases), Kafka KRaft, Kafka UI, MailHog, and Zipkin.*
 
-# Start order (separate terminals)
+### Step 2: Start Microservices (in separate terminals or IDE)
+```bash
+# 1. Config & Registry
 ./gradlew :config-server:bootRun
 ./gradlew :eureka-server:bootRun
+
+# 2. Business Services
 ./gradlew :auth-service:bootRun
 ./gradlew :account-service:bootRun
 ./gradlew :payment-service:bootRun
 ./gradlew :transaction-service:bootRun
 ./gradlew :notification-service:bootRun
-./gradlew :dummy-service:bootRun
+
+# 3. Gateway
 ./gradlew :api-gateway:bootRun
 ```
 
-### Phase 0 checkpoint
+---
 
-- Eureka dashboard: http://localhost:8761 — should list `DUMMY-SERVICE` (and `API-GATEWAY`)
-- Via Gateway: `GET http://localhost:8080/api/dummy/ping` → `{"status":"UP","service":"dummy-service"}`
-- Kafka UI: http://localhost:8089
-- Kafka bootstrap (host apps): `localhost:9094`
+## 🧪 Testing & Postman Collection
 
-### Phase 1 checkpoint
-
+### Automated Tests
 ```bash
-# Register
-curl -s -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"alice\",\"email\":\"alice@example.com\",\"password\":\"password123\"}"
-
-# Login
-curl -s -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"alice\",\"password\":\"password123\"}"
-
-# Without token → 401
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/dummy/ping
-
-# With access token → 200
-curl -s http://localhost:8080/api/dummy/ping \
-  -H "Authorization: Bearer <accessToken>"
+# Run all unit and integration tests across all microservices
+./gradlew test
 ```
 
-- Eureka should list `AUTH-SERVICE`
-- Gateway validates JWT and forwards `X-User-Id` to downstream services
+### Postman Collection
+Import the pre-configured Postman Collection:
+📁 [`docs/postman_collection.json`](docs/postman_collection.json)
 
-### Phase 2 checkpoint
+The collection includes automated tests that capture and propagate `accessToken`, `userId`, `senderAccountId`, `receiverAccountId`, and `paymentId` seamlessly across test steps.
 
-```bash
-# Create account
-curl -s -X POST http://localhost:8080/api/accounts \
-  -H "Authorization: Bearer <access-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"userId":"<user-id>","balance":"1000.00","currency":"USD"}'
+### OpenAPI / Swagger UI Endpoints
+- **Auth Service**: `http://localhost:8081/swagger-ui.html`
+- **Account Service**: `http://localhost:8082/swagger-ui.html`
+- **Payment Service**: `http://localhost:8083/swagger-ui.html`
+- **Transaction Service**: `http://localhost:8084/swagger-ui.html`
+- **Notification Service**: `http://localhost:8085/swagger-ui.html`
 
-# Get by account id
-curl -s http://localhost:8080/api/accounts/<account-id> \
-  -H "Authorization: Bearer <access-token>"
-```
+---
 
-### Phase 3 checkpoint
+## 💡 Key Architectural Decisions & Interview Q&A
 
-```bash
-# Initiate transfer saga
-curl -s -X POST http://localhost:8080/api/payments/transfer \
-  -H "Authorization: Bearer <access-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"fromAccountId":"<account-A-id>","toAccountId":"<account-B-id>","amount":"250.00"}'
+<details>
+<summary><b>1. Why Saga Choreography/Orchestration instead of Two-Phase Commit (2PC)?</b></summary>
+2PC requires distributed locks across heterogeneous databases and participants. In high-volume banking systems, this creates latency bottlenecks and single points of failure. The Saga pattern splits transactions into local acid transactions coordinated asynchronously via Kafka events with compensating transactions for rollbacks.
+</details>
 
-# Check payment status
-curl -s http://localhost:8080/api/payments/<payment-id> \
-  -H "Authorization: Bearer <access-token>"
-```
+<details>
+<summary><b>2. How is concurrency handled during simultaneous balance updates?</b></summary>
+Account Service utilizes <b>Optimistic Concurrency Control</b> with JPA <code>@Version</code>. When concurrent transfers attempt to modify the same balance, Hibernate checks the version column, throwing an <code>OptimisticLockException</code> which is safely caught and retried/failed by the Saga orchestrator.
+</details>
 
-### Phase 4 checkpoint
+<details>
+<summary><b>3. How do we guarantee Kafka Consumer Idempotency?</b></summary>
+Each Kafka message carries a unique <code>eventId</code> (UUID). Consumers first query the <code>processed_events</code> table. If the event ID exists, the message is ignored. If not, the transaction is processed and the event ID is stored atomically.
+</details>
 
-```bash
-# Query transaction history for an account
-curl -s "http://localhost:8080/api/transactions?accountId=<account-id>" \
-  -H "Authorization: Bearer <access-token>"
+---
 
-# Query single transaction log
-curl -s "http://localhost:8080/api/transactions/<transaction-id>" \
-  -H "Authorization: Bearer <access-token>"
-```
-
-### Phase 5 checkpoint
-
-```bash
-# Perform a transfer (see Phase 3), then query notification log
-curl -s "http://localhost:8080/api/notifications?paymentId=<payment-id>" \
-  -H "Authorization: Bearer <access-token>"
-
-# Query single notification by id
-curl -s "http://localhost:8080/api/notifications/<notification-id>" \
-  -H "Authorization: Bearer <access-token>"
-```
-
-- MailHog UI: http://localhost:8025 — email từ SMTP 1025 xuất hiện sau transfer
-- Notification consumer idempotent: duplicate được skip qua `processed_events` table
-
-## Project structure
+## 📂 Project Structure
 
 ```
 banking-microservices-demo/
-├── docker-compose.yml
-├── docker/postgres/init-databases.sql
-├── eureka-server/
-├── config-server/
-├── api-gateway/
-├── dummy-service/          # Phase 0 checkpoint only
-├── auth-service/           # Phase 1+
-├── account-service/        # Phase 2+
-├── payment-service/        # Phase 3+
-├── transaction-service/    # Phase 4+
-└── notification-service/   # Phase 5+
+├── .github/workflows/ci.yml       # GitHub Actions CI pipeline
+├── docs/postman_collection.json   # Ready-to-import Postman collection
+├── docker-compose.yml             # Postgres, Kafka, Kafka UI, MailHog, Zipkin
+├── config-server/                 # Centralized cloud configurations
+├── eureka-server/                 # Service discovery registry
+├── api-gateway/                   # WebFlux gateway + JWT + Circuit Breaker
+├── auth-service/                  # User auth + JWT management
+├── account-service/               # Account balance + Optimistic locking
+├── payment-service/               # Saga orchestrator + Testcontainers
+├── transaction-service/           # Immutable transaction history
+└── notification-service/          # Email notifications + Deduplication
 ```
-
-## Status
-
-**Phase 5 complete.** Notification service đã triển khai Kafka consumer cho `payment.transfer-completed` / `payment.transfer-failed`, gửi email qua SMTP/MailHog, lưu notification log (idempotent qua `processed_events`), và query API `GET /api/notifications?paymentId=` / `GET /api/notifications/{id}`. Tiếp theo theo `banking-microservices-plan.md` cho Phase 6. Conventions: `AGENTS.md`.
