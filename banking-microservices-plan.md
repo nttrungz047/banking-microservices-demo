@@ -77,10 +77,12 @@ Portfolio project thể hiện năng lực: microservices architecture, saga pat
 ---
 
 ## Phase 6 — Cross-cutting Concerns
-- [ ] Centralized exception handling (`@ControllerAdvice` mỗi service)
-- [ ] Distributed tracing: **Zipkin/Sleuth** hoặc **Micrometer Tracing** — trace 1 request xuyên nhiều service
-- [ ] Resilience: **Resilience4j** — Circuit Breaker cho sync call (Gateway → Auth), Retry cho Kafka consumer
-- [ ] Idempotency: Kafka consumer phải idempotent (dùng eventId + dedup table) để tránh double-debit khi message bị redeliver
+- [x] Centralized exception handling (`@ControllerAdvice` mỗi service)
+- [x] Distributed tracing: **Zipkin/Sleuth** hoặc **Micrometer Tracing** — trace 1 request xuyên nhiều service
+- [x] Resilience: **Resilience4j** — Circuit Breaker cho sync call (Gateway → Downstream services), Retry + DLT cho Kafka consumer
+- [x] Idempotency: Kafka consumer phải idempotent (dùng eventId + dedup table) để tránh double-debit khi message bị redeliver
+
+**Checkpoint:** Centralized error schema thống nhất, Zipkin distributed tracing & observation qua Kafka, Resilience4j Circuit Breaker fallback trên Gateway, Kafka consumer retry với BackOff/DLT và idempotency dedup table. ✅
 
 ---
 
@@ -102,7 +104,7 @@ Mỗi phase code xong nên demo chạy được (checkpoint) trước khi qua ph
 - Phase 0: Service discovery hoạt động thế nào? Gateway routing?
 - Phase 1: JWT stateless vs session — trade-off? Refresh token flow?
 - Phase 2: Optimistic vs Pessimistic locking cho balance update?
-- Phase 3: Saga Choreography vs Orchestration? Sao không 2PC?
+- Phase 3: Saga Choreography vs Orchestraction? Sao không 2PC?
 - Phase 4: Tại sao Transaction Service tách riêng khỏi Payment?
 - Phase 5: Notification delivery reliability và consumer idempotency?
 - Phase 6: Circuit Breaker states? Idempotency implement thế nào?

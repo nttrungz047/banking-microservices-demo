@@ -20,6 +20,11 @@ spring:
     host: localhost
     port: 1025
 
+management:
+  health:
+    mail:
+      enabled: false
+
 app:
   notification:
     mail:
