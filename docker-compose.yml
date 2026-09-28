@@ -63,5 +63,11 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: banking-zipkin
+    ports:
+      - "9411:9411"
+
 volumes:
   postgres_data:
